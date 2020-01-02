@@ -10,7 +10,7 @@ import quotas_cmdline as qc
 # Mode: 1 = Phone, 2 = Email, 3 = Text
 
 class Quota:
-    def __init__(self, prefix, quota_name, quota_limit, question_name, question_code, nsize, nsize_override, flex=0, tri=False):
+    def __init__(self, prefix, quota_name, quota_limit, question_name, question_code, nsize, nsize_override, flex=0, tri=False, raw=False):
         self.name = quota_name
         self.limit = quota_limit
         self.question_name = question_name
@@ -21,6 +21,7 @@ class Quota:
         self.flex = flex
         self.isactive = True
         self.tri = tri
+        self.raw = raw
         self.counter_limit = int((len(str(self.size)) + 1) * "9")
         self.fullname = name = self.prefix + " - " + self.name
         if (self.flex > 0):
@@ -35,6 +36,8 @@ class Quota:
 
     def calculate_limit(self, nsize_index=None):
         self.validify()
+        if (self.raw):
+            return
         if (self.limit == self.counter_limit):
             return
         size = self.size
@@ -74,10 +77,11 @@ class Quota:
         return data + "\n"
 
 class QuotaGroup:
-    def __init__(self, group_name, trisplit, flex, cli, nsize, tri_sizes):
+    def __init__(self, group_name, trisplit, flex, raw, cli, nsize, tri_sizes):
         self.group_name = group_name
         self.trisplit = trisplit
         self.flex = int(flex)
+        self.raw = raw
         self.client = cli
         self.nSize = int(nsize)
         self.tri_sizes = tri_sizes
@@ -93,55 +97,60 @@ class QuotaGroup:
         if (self.flex > 0):
             flex = self.flex
         if (config.client == "tulchin"):
-            # for the same quota, Tulchin wants a online, cell, and landline
-            q = Quota(self.get_name(), quota_name + " - Landline", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit)
-            self.quotas.append(q)
-            if (expand):
-                q = Quota(self.get_name(), quota_name + " - Landline", int(quota_limit), "pMode", 1, self.nSize, nsize_override, flex, self.trisplit)
+            # for the same quota, Tulchin wants a online, cell, and landline if it is a DNQ
+            # flex=0, tri=False, raw=False
+            q = Quota(self.get_name(), quota_name, int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
+            if (quota_name.lower().__contains__("dnq")):
+                q = Quota(self.get_name(), quota_name + " - Landline", int(quota_limit), "pMode", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
                 self.quotas.append(q)
-                q = Quota(self.get_name(), quota_name + " - Landline", int(quota_limit), "PhoneType", 1, self.nSize, nsize_override, flex, self.trisplit)
+                if (expand):
+                    q = Quota(self.get_name(), quota_name + " - Landline", int(quota_limit), "PhoneType", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                    self.quotas.append(q)
+                    q = Quota(self.get_name(), quota_name + " - Cell", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                    self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + " - Cell", int(quota_limit), "pMode", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
                 self.quotas.append(q)
-            q = Quota(self.get_name(), quota_name + " - Cell", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit)
-            self.quotas.append(q)
-            if (expand):
-                q = Quota(self.get_name(), quota_name + " - Cell", int(quota_limit), "pMode", 1, self.nSize, nsize_override, flex, self.trisplit)
+                if (expand):
+                    q = Quota(self.get_name(), quota_name + " - Cell", int(quota_limit), "PhoneType", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                    self.quotas.append(q)
+                    q = Quota(self.get_name(), quota_name + " - Online", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                    self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + " - Online", int(quota_limit), "pMode", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
                 self.quotas.append(q)
-                q = Quota(self.get_name(), quota_name + " - Cell", int(quota_limit), "PhoneType", 2, self.nSize, nsize_override, flex, self.trisplit)
-                self.quotas.append(q)
-            q = Quota(self.get_name(), quota_name + " - Online", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit)
-            self.quotas.append(q)
-            if (expand):
-                q = Quota(self.get_name(), quota_name + " - Online", int(quota_limit), "pMode", 2, self.nSize, nsize_override, flex, self.trisplit)
-                self.quotas.append(q)
-                q = Quota(self.get_name(), quota_name + " - Online", int(quota_limit), "pMode", 3, self.nSize, nsize_override, flex, self.trisplit)
+                if (expand):
+                    q = Quota(self.get_name(), quota_name + " - Online", int(quota_limit), "pMode", 3, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                    self.quotas.append(q)
+                    q = Quota(self.get_name(), quota_name, int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                    self.quotas.append(q)
+            else:
                 self.quotas.append(q)
             self.limits.append(int(quota_limit))
         elif (self.trisplit == False):
-            q = Quota(self.get_name(), quota_name, int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit)
+            q = Quota(self.get_name(), quota_name, int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
             self.quotas.append(q)
             self.limits.append(int(quota_limit))
         else:
             # tri split quotas include (Phone, email, text)->(self)(pMode)
+            q = Quota(self.get_name(), quota_name + "- Phone", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
             self.limits.append(int(quota_limit))
-            q = Quota(self.get_name(), quota_name + "- Phone", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit)
             q.calculate_limit(0)
             self.quotas.append(q)
+            q = Quota(self.get_name(), quota_name + "- Phone", int(quota_limit), "pMode", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
             if (expand):
-                q = Quota(self.get_name(), quota_name + "- Phone", int(quota_limit), "pMode", 1, self.nSize, nsize_override, flex, self.trisplit)
                 q.calculate_limit(0)
+                q = Quota(self.get_name(), quota_name + "- Email", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
                 self.quotas.append(q)
-            q = Quota(self.get_name(), quota_name + "- Email", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit)
             q.calculate_limit(1)
             self.quotas.append(q)
+            q = Quota(self.get_name(), quota_name + "- Email", int(quota_limit), "pMode", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
             if (expand):
-                q = Quota(self.get_name(), quota_name + "- Email", int(quota_limit), "pMode", 2, self.nSize, nsize_override, flex, self.trisplit)
                 q.calculate_limit(1)
+                q = Quota(self.get_name(), quota_name + "- Text", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit, self.raw)
                 self.quotas.append(q)
-            q = Quota(self.get_name(), quota_name + "- Text", int(quota_limit), question_name, int(question_code), self.nSize, nsize_override, flex, self.trisplit)
             q.calculate_limit(2)
             self.quotas.append(q)
+            q = Quota(self.get_name(), quota_name + "- Text", int(quota_limit), "pMode", 3, self.nSize, nsize_override, flex, self.trisplit, self.raw)
             if (expand):
-                q = Quota(self.get_name(), quota_name + "- Text", int(quota_limit), "pMode", 3, self.nSize, nsize_override, flex, self.trisplit)
                 q.calculate_limit(2)
                 self.quotas.append(q)
 
@@ -167,11 +176,10 @@ class QuotaGroup:
             if (limit != -1):
                 sum += limit
         if (sum != 100):
-            warnings.append("WARNING: Sum of percentages in quota: " + self.get_name() + " Do not add up to 100% at: " + str(sum) +"%")
-
-        if (not self.trisplit):
-            for i in range(0, len(self.quotas)):
-                self.quotas[i].calculate_limit()
+            if (not self.raw):
+                warnings.append("WARNING: Sum of percentages in quota: " + self.get_name() + " Do not add up to 100% at: " + str(sum) +"%")
+        for i in range(0, len(self.quotas)):
+            self.quotas[i].calculate_limit()
         warnings.sort()
         for warning in warnings:
             print(warning, file=sys.stderr)
@@ -195,6 +203,7 @@ if __name__ == "__main__":
     trisplit = False
     gflex = 0
     q_prefix = ""
+    is_raw = False
 
     # init command line arg buffers
     config.init()
@@ -213,6 +222,7 @@ if __name__ == "__main__":
             # reset logic globals
             trisplit = False
             gflex = 0
+            is_raw = False
             q_prefix = ""
             line = line.split("\t");
             # if a line contains only 1 thing, attempt to parse a Quota group
@@ -230,7 +240,11 @@ if __name__ == "__main__":
                     line = line[:index] + line[index+2:]
                 # group name
                 q_prefix = line.split(" ")[0]
-                gQuota_groups.append(QuotaGroup(q_prefix, trisplit, gflex, config.client, config.nSize, config.trimode_nsize))
+                # raw
+                if (line.find("(raw)") != -1):
+                    line = line.replace("(raw)", "")
+                    is_raw = True
+                gQuota_groups.append(QuotaGroup(q_prefix, trisplit, gflex, is_raw, config.client, config.nSize, config.trimode_nsize))
                 continue
             else:
                 # Empty percentage means 0
