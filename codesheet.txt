@@ -1,0 +1,41 @@
+(tri)Party (Sample Variable PARTY)
+Democrat 	57%	Party	1
+Republican 	23%	Party	2
+Non-Partisan DTS	16%	Party	3
+Other Codes	4%	Party	4
+
+Sex (Sample Variable SEX)
+Female	56%	Gender	1
+Male	44%	Gender	2
+other	0%	Gender	3
+
+Age (Self-Identified)
+18-34	20%	Age	1
+35-44	13%	Age	2
+45-54	16%	Age	3
+55-64	20%	Age	4
+65+	31%	Age	5
+other	0%	Age	6
+Geography (Sample Variable City)
+CITY OF STOCKTON COUNCIL DISTRICT 1	21%	Geo	1
+CITY OF STOCKTON COUNCIL DISTRICT 2	16%	Geo	2
+CITY OF STOCKTON COUNCIL DISTRICT 3	18%	Geo	3
+CITY OF STOCKTON COUNCIL DISTRICT 4	19%	Geo	4
+CITY OF STOCKTON COUNCIL DISTRICT 5	12%	Geo	5
+CITY OF STOCKTON COUNCIL DISTRICT 6	13%	Geo	6
+
+Ethnicity (Self-Identified)
+Latino Under 45	13%	Ethnicity	1
+Latino 45+	16%	Ethnicity	2
+Filipino	5%	Ethnicity	3
+Other Asian	6%	Ethnicity	4
+AA	5%	Ethnicity	5
+Other	55%	Ethnicity	6
+
+SplitAB
+A	50%	SplitAB	1
+B	50%	SplitAB	2
+
+SplitCD
+C	50%	SplitCD	1
+D	50%	SplitCD	2
