@@ -51,6 +51,7 @@ class Quota:
 
     def display(self):
         simple = "Simple"
+        self.limit = int(self.limit)
         if (self.tri):
             self.isactive = False
         quota_settings = '"{""action"":""1"",""autoload_url"":""1"",""active"":""' + str(int(self.isactive)) + '"",""qls"":[{""quotals_language"":""en"",""quotals_name"":""x"",""quotals_url"":"""",""quotals_urldescrip"":"""",""quotals_message"":""Sorry your responses have exceeded a quota on this survey.""}]}"'
