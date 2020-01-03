@@ -1,50 +1,45 @@
 import config
 import sys
+import argparse
 
 def usage_message():
-    print("Usage: quotas.py <FILE> <N-SIZE> [Trimode N-sizes Phone-Email-Text] [Client]")
+    print("Usage: quotas.py <-f FILE> <-n N-SIZE> [-tri Phone-Email-Text] [-c Client]")
     print("EXAMPLE:")
-    print("quota.py codesheet.txt 400 100-200-100 Tulchin")
+    print("quota.py -f codesheet.txt -n 400 -tn 100-200-100 -c Tulchin")
+    print("For more info:\nquota.py --help")
     exit()
 
 def parse_commandline_args():
-    if (len(sys.argv) < 3 or len(sys.argv) > 5):
-        print("not enough args", file=sys.stderr)
+    if (len(sys.argv) < 5 or len(sys.argv) > 9):
+        print("Incorrect argument count", file=sys.stderr)
         usage_message()
+
+    parser = argparse.ArgumentParser('Description=Generate CSV Quota from Codesheet')
+    parser.add_argument('-f', type=str, help="Tab delimited Codesheet. |Name|Percentage|Qcode|AnsCode")
+    parser.add_argument('-n', type=int, help="End size")
+    parser.add_argument('-tri', type=str, help="Optional Phone-Email-Text end sizes for trisplit quotas")
+    parser.add_argument('-c', type=str, help="Client name, Tulchin only right now for DNQs")
+    args = parser.parse_args()
 
     # file name
-    try:
-        config.filename = sys.argv[1]
-        with open(config.filename, "r") as f:
-            f.close()
-    except FileNotFoundError:
-        print("File not found, or cannot be opened", file=sys.stderr)
-        usage_message()
-
+    if (args.f != None):
+        config.filename = args.f
+        try:
+            with open(config.filename, "r") as f:
+                f.close()
+        except FileNotFoundError:
+            print("File: " + config.filename + " not found, or cannot be opened", file=sys.stderr)
     # n size
-    try:
-        config.nSize = int(sys.argv[2])
-    except:
-        print("N size must be a number, recieved " + sys.argv[1], file=sys.stderr)
-        usage_message()
-
-    # Trimode sizes - optional
-    if (len(sys.argv) >= 4):
-        if (sys.argv[3].__contains__("-")):
-            try:
-                config.trimode_nsize = sys.argv[3].split("-")
-                for i in range(0, len(config.trimode_nsize)):
-                    config.trimode_nsize[i] = int(config.trimode_nsize[i])
-            except:
-                print("Cannot process Trimode N sizes", file=sys.stderr)
-                usage_message()
-        else:
-            # can be the client too, if not endsize
-            config.client = sys.argv[3].lower()
-
-    # client name - Optional
-    if (len(sys.argv) == 5):
-        config.client = sys.argv[4].lower()
+    if (args.n != None):
+        config.nSize = args.n
+    # Trimode sizes
+    if (args.tri != None):
+        config.trimode_nsize = args.tri.split("-")
+        for i in range(0, len(config.trimode_nsize)):
+            config.trimode_nsize[i] = int(config.trimode_nsize[i])
+    #client name
+    if (args.c != None):
+        config.client = args.c.lower()
 
     if (config.trimode_nsize == None):
         config.trimode_nsize = [config.nSize, config.nSize, config.nSize]
