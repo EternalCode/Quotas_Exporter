@@ -51,18 +51,21 @@ class Quota:
 
     def display(self):
         simple = "Simple"
+        data = ""
+        nlow = self.fullname.lower()
         self.limit = int(self.limit)
+        if (self.fullname.__contains__("DNQ")):
+            self.limit = 0
+        elif(self.limit < 5):
+            self.isactive = False
         if (self.tri):
             self.isactive = False
+
         quota_settings = '"{""action"":""1"",""autoload_url"":""1"",""active"":""' + str(int(self.isactive)) + '"",""qls"":[{""quotals_language"":""en"",""quotals_name"":""x"",""quotals_url"":"""",""quotals_urldescrip"":"""",""quotals_message"":""Sorry your responses have exceeded a quota on this survey.""}]}"'
         quota_settings_dnq = '"{""action"":""1"",""autoload_url"":""1"",""active"":""' + str(int(self.isactive)) + '"",""qls"":[{""quotals_language"":""en"",""quotals_name"":""x"",""quotals_url"":"""",""quotals_urldescrip"":"""",""quotals_message"":""Thank and Terminate.""}]}"'
         quota_settings_dnq_online = '"{""action"":""1"",""autoload_url"":""1"",""active"":""' + str(int(self.isactive)) + '"",""qls"":[{""quotals_language"":""en"",""quotals_name"":""x"",""quotals_url"":"""",""quotals_urldescrip"":"""",""quotals_message"":""Thank you for your time.""}]}"'
         quota_settings_reschedule = '"{""action"":""1"",""autoload_url"":""1"",""active"":""' + str(int(self.isactive)) + '"",""qls"":[{""quotals_language"":""en"",""quotals_name"":""x"",""quotals_url"":"""",""quotals_urldescrip"":"""",""quotals_message"":""Reschedule and end call.""}]}"'
 
-        data = ""
-        nlow = self.fullname.lower()
-        if (self.fullname.__contains__("DNQ")):
-            self.limit = 0
         if (nlow.__contains__("reschedule")):
             data =(self.fullname + "," + simple + "," + self.question_name + "," + str(self.q_code) + "," +
             str(self.limit) + "," + quota_settings_reschedule)
