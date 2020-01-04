@@ -19,6 +19,7 @@ def parse_commandline_args():
     parser.add_argument('-n', type=int, help="End size")
     parser.add_argument('-tri', type=str, help="Optional Phone-Email-Text end sizes for trisplit quotas")
     parser.add_argument('-c', type=str, help="Client name, Tulchin only right now for DNQs")
+    parser.add_argument('-dual', type=str, help="Optional for dual modes, Phone-Email DNQs")
     args = parser.parse_args()
 
     # file name
@@ -37,6 +38,13 @@ def parse_commandline_args():
         config.trimode_nsize = args.tri.split("-")
         for i in range(0, len(config.trimode_nsize)):
             config.trimode_nsize[i] = int(config.trimode_nsize[i])
+
+    # dual mode sizes
+    if (args.dual != None):
+        config.dualmode = args.dual.split("-")
+        for i in range(0, len(config.dualmode)):
+            config.dualmode[i] = int(config.dualmode[i])
+
     #client name
     if (args.c != None):
         config.client = args.c.lower()

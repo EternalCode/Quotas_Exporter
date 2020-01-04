@@ -24,6 +24,7 @@ class Quota:
         self.raw = raw
         self.counter_limit = int((len(str(self.size)) + 1) * "9")
         self.fullname = name = self.prefix + " - " + self.name
+        self.calculated = False
         if (self.flex > 0):
             self.fullname += " - Flex " + str(self.flex) + "%"
 
@@ -36,18 +37,25 @@ class Quota:
 
     def calculate_limit(self, nsize_index=None):
         self.validify()
+        if(self.calculated):
+            return
         if (self.raw):
             return
         if (self.limit == self.counter_limit):
             return
         size = self.size
         if (nsize_index != None):
-            size = config.trimode_nsize[nsize_index]
+            if (nsize_index > 2):
+                print("Dual mode calculation must be made with " + str(config.dualmode[nsize_index-3]));
+                size = config.dualmode[nsize_index-3]
+            else:
+                size = config.trimode_nsize[nsize_index]
         self.limit = round(size * (self.limit/100))
         # flex
         if (self.flex > 0):
             self.limit += round((self.flex / 100) * size)
         self.limit = int(self.limit)
+        self.calculated = True
 
     def display(self):
         simple = "Simple"
@@ -82,7 +90,7 @@ class Quota:
         return data + "\n"
 
 class QuotaGroup:
-    def __init__(self, group_name, trisplit, flex, raw, cli, nsize, tri_sizes):
+    def __init__(self, group_name, trisplit, flex, raw, cli, nsize, tri_sizes, dual):
         self.group_name = group_name
         self.trisplit = trisplit
         self.flex = int(flex)
@@ -93,6 +101,7 @@ class QuotaGroup:
         self.quotas = []
         self.limits = []
         self.names = []
+        self.dual = dual
 
     def get_name(self):
         return self.group_name
@@ -129,6 +138,14 @@ class QuotaGroup:
                     self.quotas.append(q)
             else:
                 self.quotas.append(q)
+            self.limits.append(float(quota_limit))
+        elif (self.dual == True):
+            q = Quota(self.get_name(), quota_name + "- Phone", float(quota_limit), question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+            self.quotas.append(q)
+            q.calculate_limit(3)
+            q = Quota(self.get_name(), quota_name + "- Email", float(quota_limit), question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+            q.calculate_limit(4)
+            self.quotas.append(q)
             self.limits.append(float(quota_limit))
         elif (self.trisplit == False):
             q = Quota(self.get_name(), quota_name, float(quota_limit), question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
@@ -183,6 +200,10 @@ class QuotaGroup:
         if (sum != 100):
             if (not self.raw):
                 warnings.append("WARNING: Sum of percentages in quota: " + self.get_name() + " Do not add up to 100% at: " + str(sum) +"%")
+            # else:
+                # raw numbers see if they add up to the end size if not trisplit
+                # TODO
+
         for i in range(0, len(self.quotas)):
             self.quotas[i].calculate_limit()
         warnings.sort()
@@ -226,6 +247,7 @@ if __name__ == "__main__":
                 continue
             # reset logic globals
             trisplit = False
+            isdual = False
             gflex = 0
             is_raw = False
             q_prefix = ""
@@ -237,6 +259,10 @@ if __name__ == "__main__":
                 if (line.find("(tri)") != -1):
                     line = line.replace("(tri)", "")
                     trisplit = True
+                # dual mode
+                if (line.find("(dual)") != -1):
+                    line = line.replace("(dual)", "")
+                    isdual = True
                 # flex
                 if (line.find("(flex ") != -1):
                     index = line.find("(flex ")
@@ -249,7 +275,7 @@ if __name__ == "__main__":
                     is_raw = True
                 # group name
                 q_prefix = line.split(" ")[0]
-                gQuota_groups.append(QuotaGroup(q_prefix, trisplit, gflex, is_raw, config.client, config.nSize, config.trimode_nsize))
+                gQuota_groups.append(QuotaGroup(q_prefix, trisplit, gflex, is_raw, config.client, config.nSize, config.trimode_nsize, isdual))
                 continue
             else:
                 # Empty percentage means 0
