@@ -9,3 +9,5 @@ def init():
     dualmode = None
     global client
     client = None
+    global splitab
+    splitab = None

@@ -3,16 +3,14 @@ import sys
 import argparse
 
 def usage_message():
-    print("Usage: quotas.py <-f FILE> <-n N-SIZE> [-tri Phone-Email-Text] [-c Client]")
-    print("EXAMPLE:")
-    print("quota.py -f codesheet.txt -n 400 -tn 100-200-100 -c Tulchin")
+    print("Improper usage.")
     print("For more info:\nquota.py --help")
     exit()
 
 def parse_commandline_args():
-    if (len(sys.argv) < 5 or len(sys.argv) > 9):
-        print("Incorrect argument count", file=sys.stderr)
-        usage_message()
+    # if (len(sys.argv) < 5 or len(sys.argv) > 10):
+    #     print("Incorrect argument count", file=sys.stderr)
+    #     usage_message()
 
     parser = argparse.ArgumentParser('Description=Generate CSV Quota from Codesheet')
     parser.add_argument('-f', type=str, help="Tab delimited Codesheet. |Name|Percentage|Qcode|AnsCode")
@@ -20,7 +18,10 @@ def parse_commandline_args():
     parser.add_argument('-tri', type=str, help="Optional Phone-Email-Text end sizes for trisplit quotas")
     parser.add_argument('-c', type=str, help="Client name, Tulchin only right now for DNQs")
     parser.add_argument('-dual', type=str, help="Optional for dual modes, Phone-Email DNQs")
+    parser.add_argument('-o', type=str, help="Optional output filename, .csv appended by default.")
+    parser.add_argument('-s', type=str, help="Include splitAB splits.")
     args = parser.parse_args()
+
 
     # file name
     if (args.f != None):
@@ -30,9 +31,26 @@ def parse_commandline_args():
                 f.close()
         except FileNotFoundError:
             print("File: " + config.filename + " not found, or cannot be opened", file=sys.stderr)
+            usage()
+
+    # output filename
+    if (args.o != None):
+        config.outname = args.o + ".csv"
+    else:
+        config.outname = config.filename.split(".")[0] + "_quotas.csv"
+
     # n size
     if (args.n != None):
         config.nSize = args.n
+
+    # n size
+    if (args.n != None):
+        config.nSize = args.n
+
+    # splitab
+    if (args.s != None):
+        config.splitab = True
+
     # Trimode sizes
     if (args.tri != None):
         config.trimode_nsize = args.tri.split("-")
@@ -48,6 +66,10 @@ def parse_commandline_args():
     #client name
     if (args.c != None):
         config.client = args.c.lower()
+
+    if (config.dualmode == None):
+        config.dualmode = [config.nSize, config.nSize]
+        print("\nIMPORTANT: Dual mode N-sizes not defined, defaulting each to " + str(config.nSize))
 
     if (config.trimode_nsize == None):
         config.trimode_nsize = [config.nSize, config.nSize, config.nSize]

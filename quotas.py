@@ -8,6 +8,15 @@ import quotas_cmdline as qc
 #
 # Phonetype: 1 = Landline, 2 = Cellphone
 # Mode: 1 = Phone, 2 = Email, 3 = Text
+def rd(x):
+    val = str(x).split(".")
+    if (len(val) == 1):
+        return val
+    elif (int(val[1][0]) >= 5):
+        return int(x) + 1
+    else:
+        return int(x)
+
 
 class Quota:
     def __init__(self, prefix, quota_name, quota_limit, question_name, question_code, nsize, nsize_override, flex=0, tri=False, raw=False):
@@ -25,8 +34,11 @@ class Quota:
         self.counter_limit = int((len(str(self.size)) + 1) * "9")
         self.fullname = name = self.prefix + " - " + self.name
         self.calculated = False
-        if (self.flex > 0):
-            self.fullname += " - Flex " + str(self.flex) + "%"
+        self.max = 0
+        self.delta = 0
+        self.splitQuotas = False
+        if (self.flex > 0 and (self.max + self.delta) > 0):
+            self.fullname += " - Flex " + str(self.flex) + "% " + " +/-" + str(self.delta)
 
     def validify(self):
         if (self.limit == 0):
@@ -34,9 +46,12 @@ class Quota:
         elif(self.limit == -1):
             self.isactive = False
             self.limit = self.counter_limit
+        if (self.fullname.lower().find("offsetter") != -1):
+            self.isactive = False
 
     def calculate_limit(self, nsize_index=None):
         self.validify()
+
         if(self.calculated):
             return
         if (self.raw):
@@ -46,15 +61,17 @@ class Quota:
         size = self.size
         if (nsize_index != None):
             if (nsize_index > 2):
-                print("Dual mode calculation must be made with " + str(config.dualmode[nsize_index-3]));
                 size = config.dualmode[nsize_index-3]
             else:
                 size = config.trimode_nsize[nsize_index]
-        self.limit = round(size * (self.limit/100))
+        self.limit = (size * (self.limit / 100))
+        self.max = self.limit;
         # flex
         if (self.flex > 0):
-            self.limit += round((self.flex / 100) * size)
-        self.limit = int(self.limit)
+            self.delta = rd((self.flex / 100) * size)
+            self.limit += self.delta
+            self.fullname += " - Flex " + str(self.flex) + "% " + " +/-" + str(self.delta)
+        self.limit = rd(self.limit)
         self.calculated = True
 
     def display(self):
@@ -141,16 +158,74 @@ class QuotaGroup:
             self.limits.append(float(quota_limit))
         elif (self.dual == True):
             q = Quota(self.get_name(), quota_name + "- Phone", float(quota_limit), question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
-            self.quotas.append(q)
             q.calculate_limit(3)
+            self.quotas.append(q)
+            q = Quota(self.get_name(), quota_name + " - Phone", float(quota_limit), "pMode", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+            q.calculate_limit(3)
+            self.quotas.append(q)
             q = Quota(self.get_name(), quota_name + "- Email", float(quota_limit), question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
             q.calculate_limit(4)
             self.quotas.append(q)
+            q = Quota(self.get_name(), quota_name + " - Email", float(quota_limit), "pMode", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+            q.calculate_limit(4)
+            self.quotas.append(q)
+            if (config.splitab == True and self.splitQuotas):
+                q = Quota(self.get_name(), quota_name + "- Phone SplitA", float(quota_limit / 2)+1, question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(3)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Phone SplitB", float(quota_limit / 2)+1, question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(3)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Phone SplitA", float(quota_limit / 2)+1, "SplitAB", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(3)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Phone SplitB", float(quota_limit / 2)+1, "SplitAB", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(3)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Phone SplitA", float(quota_limit / 2)+1, "pMode", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Phone SplitB", float(quota_limit / 2)+1, "pMode", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
+
+
+                q = Quota(self.get_name(), quota_name + "- Email SplitA", float(quota_limit / 2)+1, question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Email SplitA", float(quota_limit / 2)+1, "SplitAB", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Email SplitA", float(quota_limit / 2)+1, "pMode", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Email SplitB", float(quota_limit / 2)+1, question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Email SplitB", float(quota_limit / 2)+1, "SplitAB", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
+                q = Quota(self.get_name(), quota_name + "- Email SplitB", float(quota_limit / 2)+1, "pMode", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                q.calculate_limit(4)
+                self.quotas.append(q)
             self.limits.append(float(quota_limit))
-        elif (self.trisplit == False):
+        elif (self.trisplit == False and self.splitQuotas):
             q = Quota(self.get_name(), quota_name, float(quota_limit), question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
             self.quotas.append(q)
             self.limits.append(float(quota_limit))
+            if (config.splitab == True):
+                q = Quota(self.get_name(), quota_name + "Split A", float(quota_limit / 2)+1, question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                self.quotas.append(q)
+                self.limits.append(float(quota_limit))
+                q = Quota(self.get_name(), quota_name + "Split A", float(quota_limit / 2)+1, "SplitAB", 1, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                self.quotas.append(q)
+                self.limits.append(float(quota_limit))
+                q = Quota(self.get_name(), quota_name + "Split B", float(quota_limit / 2)+1, question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                self.quotas.append(q)
+                self.limits.append(float(quota_limit))
+                q = Quota(self.get_name(), quota_name + "Split B", float(quota_limit / 2)+1, "SplitAB", 2, self.nSize, nsize_override, flex, self.trisplit, self.raw)
+                self.quotas.append(q)
+
         else:
             # tri split quotas include (Phone, email, text)->(self)(pMode)
             q = Quota(self.get_name(), quota_name + "- Phone", float(quota_limit), question_name, question_code, self.nSize, nsize_override, flex, self.trisplit, self.raw)
@@ -212,11 +287,12 @@ class QuotaGroup:
 
     def display_quotas(self):
         # sort quotas by Question name
+        #print("display Quotas for group: " + self.get_name());
         self.quotas.sort(key=lambda x: x.question_name, reverse=False)
         # sort quotas by Question code
-        self.quotas.sort(key=lambda x: x.q_code, reverse=False)
+        self.quotas.sort(key=lambda x: int(x.q_code), reverse=False)
         #sort quotas by Quota name
-        #self.quotas.sort(key=lambda x: x.fullname, reverse=False)
+        self.quotas.sort(key=lambda x: x.fullname, reverse=False)
         group_data = ""
         for quota in self.quotas:
             group_data += quota.display()
@@ -251,6 +327,7 @@ if __name__ == "__main__":
             gflex = 0
             is_raw = False
             q_prefix = ""
+            isSplit = False
             line = line.split("\t");
             # if a line contains only 1 thing, attempt to parse a Quota group
             if (len(line) == 1):
@@ -263,12 +340,23 @@ if __name__ == "__main__":
                 if (line.find("(dual)") != -1):
                     line = line.replace("(dual)", "")
                     isdual = True
+                # un-split
+                if (line.find("(us)") != -1):
+                    line = line.replace("(us)", "")
+                    isSplit = False
                 # flex
                 if (line.find("(flex ") != -1):
                     index = line.find("(flex ")
                     line = line.replace("(flex ", "")
-                    gflex = int(line[index])
-                    line = line[:index] + line[index+2:]
+                    val = "";
+                    for i in range(index, len(line)):
+                        if (line[i] == ")"):
+                            break
+                        else:
+                            val += line[i]
+                    line = line[:index] + line[index+len(val)+1:]
+                    #print("flex is: " + val)
+                    gflex = int(val)
                 # raw
                 if (line.find("(raw)") != -1):
                     line = line.replace("(raw)", "")
@@ -276,11 +364,13 @@ if __name__ == "__main__":
                 # group name
                 q_prefix = line.split(" ")[0]
                 gQuota_groups.append(QuotaGroup(q_prefix, trisplit, gflex, is_raw, config.client, config.nSize, config.trimode_nsize, isdual))
+                gQuota_groups[len(gQuota_groups)-1].splitQuotas = isSplit
                 continue
             else:
                 # Empty percentage means 0
                 if (line[1] == ""):
                     line[1] = 0
+                #print(line)
                 question_code = line[3].replace(" ", "")
                 question_code = question_code.split(",")
                 #add_quota(self, quota_name, quota_limit, question_name, question_code, nsize_override, expand=True)
@@ -303,5 +393,34 @@ if __name__ == "__main__":
         dispmode = "f"
         print(full_data)
     if (dispmode == "f"):
-        with open(config.filename.split(".")[0] + "_quotas.csv", "w") as f:
+        with open(config.outname, "w") as f:
             f.write(full_data)
+
+#SplitAB	A, B	1, 2
+#SplitCD	C, D	1,2
+#SplitEF	E, F	1, 2
+#
+# s1 = [["A", "B"], ["C", "D"], ["E", "F"]]
+# import itertools
+# def combinations(splits, size, depth):
+#     if (depth == 1):
+#         # just want the split quotas
+#         gQuota_groups.append(QuotaGroup("Split-" + str(depth), false, false, false, config.client, config.nSize, config.trimode_nsize, false))
+#         for i in range(0, len(splits)):
+#                 gQuota_groups[len(gQuota_groups)-1].add_quota(splits[i][0], size / len(splits[i]), splits[i][0], 1, false)
+#                 gQuota_groups[len(gQuota_groups)-1].add_quota(splits[i][1], size / len(splits[i]), splits[i][1], 2, false)
+#     elif (depth == 2):
+#         gQuota_groups.append(QuotaGroup("Split-" + str(depth), false, false, false, config.client, config.nSize, config.trimode_nsize, false))
+#         combs = itertools.combinations(splits, 2)
+#         for i in range(0, len(combs)):
+#             # each tuple inside is a combination to be fullfilled
+#
+#             [0][0]
+#             [0][1]
+#             [1][0]
+#             [1][1]
+#
+#
+#
+# 1 - size / len(s1[1])
+# 2 - size / len(s1[1]) / len(sx[1])
