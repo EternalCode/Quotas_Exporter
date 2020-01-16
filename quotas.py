@@ -2,7 +2,6 @@
 import sys
 import config
 import quotas_cmdline as qc
-#import inspect
 
 # Assumptions
 #
