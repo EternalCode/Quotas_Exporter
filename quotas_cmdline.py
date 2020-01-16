@@ -67,13 +67,16 @@ def parse_commandline_args():
     if (args.c != None):
         config.client = args.c.lower()
 
+    to_display = "\n"
+
     if (config.dualmode == None):
         config.dualmode = [config.nSize, config.nSize]
-        print("\nIMPORTANT: Dual mode N-sizes not defined, defaulting each to " + str(config.nSize))
+        to_display += ("IMPORTANT: Dual mode N-sizes not defined, defaulting each to " + str(config.nSize))
 
     if (config.trimode_nsize == None):
         config.trimode_nsize = [config.nSize, config.nSize, config.nSize]
-        print("\nIMPORTANT: Trimode N-sizes not defined, defaulting each to " + str(config.nSize))
-        value = input("\npress any key to continue, x to exit")
-        if (value == "x"):
-            usage_message()
+        to_display += ("\nIMPORTANT: Trimode N-sizes not defined, defaulting each to " + str(config.nSize))
+    print (to_display)
+    value = input("\npress any key to continue, x to exit")
+    if (value == "x"):
+        usage_message()
